@@ -1,7 +1,13 @@
 import { loadEnvFile } from "node:process";
 import { defineConfig } from "prisma/config";
 
-loadEnvFile(".env");
+try {
+  loadEnvFile(".env");
+} catch (error) {
+  if ((error as { code?: string }).code !== "ENOENT") {
+    throw error;
+  }
+}
 
 const databaseUrl =
   process.env.DATABASE_URL ??

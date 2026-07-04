@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Archive, Plus } from "lucide-react";
 
@@ -57,8 +58,23 @@ export default async function ProductsPage() {
               {products.map((product) => (
                 <tr key={product.id}>
                   <td className="px-5 py-4">
-                    <span className="block font-semibold">{product.name}</span>
-                    <span className="block text-zinc-500">{product.unit}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="relative size-14 overflow-hidden rounded-md bg-stone-100">
+                        {product.imageUrl ? (
+                          <Image
+                            src={product.imageUrl}
+                            alt={`${product.name} thumbnail`}
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div>
+                        <span className="block font-semibold">{product.name}</span>
+                        <span className="block text-zinc-500">{product.unit}</span>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-5 py-4">{categoryById.get(product.categoryId) ?? "Uncategorized"}</td>
                   <td className="px-5 py-4">{product.stockQuantity}</td>

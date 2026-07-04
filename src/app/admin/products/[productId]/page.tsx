@@ -39,6 +39,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             <input name="businessSlug" type="hidden" value={business.slug} />
             <input name="productId" type="hidden" value={product.id} />
             <Field defaultValue={product.name} label="Name" name="name" required />
+            <Field defaultValue={product.imageUrl ?? ""} label="Product image URL" name="imageUrl" />
             <label className="grid gap-2">
               <span className="text-sm font-medium">Description</span>
               <textarea className="min-h-28 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" defaultValue={product.description} name="description" required />

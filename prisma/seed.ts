@@ -158,7 +158,7 @@ async function main() {
           })
         : null;
 
-      await prisma.product.upsert({
+      const savedProduct = await prisma.product.upsert({
         create: {
           businessId: savedBusiness.id,
           categoryId: savedCategory?.id,
@@ -190,6 +190,23 @@ async function main() {
           },
         },
       });
+
+      await prisma.productImage.deleteMany({
+        where: {
+          productId: savedProduct.id,
+        },
+      });
+
+      if (product.imageUrl) {
+        await prisma.productImage.create({
+          data: {
+            altText: `${product.name} product display`,
+            productId: savedProduct.id,
+            sortOrder: 0,
+            url: product.imageUrl,
+          },
+        });
+      }
     }
   }
 }

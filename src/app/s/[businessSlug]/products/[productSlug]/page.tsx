@@ -40,7 +40,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <section className="mt-6 grid gap-8 lg:grid-cols-[1fr_0.8fr]">
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <Image
-              src="/images/nigerian-food-market.png"
+              src={product.imageUrl ?? "/images/products/family-food-bundle.webp"}
               alt={`${product.name} product display`}
               width={1100}
               height={825}

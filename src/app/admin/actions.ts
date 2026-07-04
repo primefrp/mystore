@@ -11,6 +11,7 @@ const productSchema = z.object({
   categoryId: z.string().optional().or(z.literal("")),
   compareAtPrice: z.coerce.number().nonnegative().optional().or(z.nan()),
   description: z.string().min(5),
+  imageUrl: z.string().trim().optional().or(z.literal("")),
   isFeatured: z.boolean(),
   name: z.string().min(2),
   price: z.coerce.number().nonnegative(),
@@ -72,12 +73,34 @@ async function getUniqueProductSlug(businessId: string, name: string, productId?
   }
 }
 
+async function savePrimaryProductImage(productId: string, productName: string, imageUrl?: string) {
+  await db.productImage.deleteMany({
+    where: {
+      productId,
+    },
+  });
+
+  if (!imageUrl) {
+    return;
+  }
+
+  await db.productImage.create({
+    data: {
+      altText: `${productName} product display`,
+      productId,
+      sortOrder: 0,
+      url: imageUrl,
+    },
+  });
+}
+
 export async function saveProductAction(formData: FormData) {
   const parsed = productSchema.parse({
     businessSlug: formData.get("businessSlug"),
     categoryId: formData.get("categoryId") ?? "",
     compareAtPrice: formData.get("compareAtPrice") || undefined,
     description: formData.get("description"),
+    imageUrl: formData.get("imageUrl") ?? "",
     isFeatured: formData.get("isFeatured") === "on",
     name: formData.get("name"),
     price: formData.get("price"),
@@ -91,9 +114,11 @@ export async function saveProductAction(formData: FormData) {
   const productId = parsed.productId || undefined;
   const slug = await getUniqueProductSlug(businessId, parsed.name, productId);
   const compareAtPrice = Number.isNaN(parsed.compareAtPrice) ? undefined : parsed.compareAtPrice;
+  const imageUrl = parsed.imageUrl?.trim();
 
+  let savedProduct: { id: string };
   if (productId) {
-    await db.product.update({
+    savedProduct = await db.product.update({
       data: {
         categoryId: parsed.categoryId || null,
         compareAtPrice,
@@ -109,9 +134,12 @@ export async function saveProductAction(formData: FormData) {
       where: {
         id: productId,
       },
+      select: {
+        id: true,
+      },
     });
   } else {
-    await db.product.create({
+    savedProduct = await db.product.create({
       data: {
         businessId,
         categoryId: parsed.categoryId || null,
@@ -125,8 +153,13 @@ export async function saveProductAction(formData: FormData) {
         stockQuantity: parsed.stockQuantity,
         unit: parsed.unit,
       },
+      select: {
+        id: true,
+      },
     });
   }
+
+  await savePrimaryProductImage(savedProduct.id, parsed.name, imageUrl);
 
   redirect("/admin/products");
 }

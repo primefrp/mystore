@@ -64,6 +64,7 @@ export type Product = {
   id: string;
   businessId: string;
   categoryId: string;
+  imageUrl?: string;
   name: string;
   slug: string;
   description: string;

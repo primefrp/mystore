@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Search, ShoppingCart } from "lucide-react";
+import { ArrowRight, LogIn, Package, Search, ShoppingCart } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { formatCurrency } from "@/lib/format";
@@ -28,6 +28,7 @@ export default async function StorefrontPage({ params }: StorefrontPageProps) {
 
   const products = await getProductsForBusinessData(business.id);
   const categories = await getCategoriesForBusinessData(business.id);
+  const heroImage = products.find((product) => product.slug === "family-food-bundle")?.imageUrl ?? "/images/products/family-food-bundle.webp";
 
   return (
     <main className="min-h-screen bg-stone-50">
@@ -43,6 +44,14 @@ export default async function StorefrontPage({ params }: StorefrontPageProps) {
             </span>
           </Link>
           <nav className="flex flex-wrap items-center gap-2">
+            <Link className="inline-flex h-10 items-center gap-2 rounded-md border border-stone-300 px-3 text-sm font-medium hover:bg-stone-100" href="/admin">
+              <LogIn size={16} aria-hidden="true" />
+              Seller Login
+            </Link>
+            <Link className="inline-flex h-10 items-center gap-2 rounded-md border border-stone-300 px-3 text-sm font-medium hover:bg-stone-100" href="/admin/products">
+              <Package size={16} aria-hidden="true" />
+              Update items
+            </Link>
             <Link className="inline-flex h-10 items-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white hover:bg-zinc-800" href={`/s/${business.slug}/checkout`}>
               <ShoppingCart size={16} aria-hidden="true" />
               Cart
@@ -66,8 +75,8 @@ export default async function StorefrontPage({ params }: StorefrontPageProps) {
           </div>
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
             <Image
-              src="/images/nigerian-food-market.png"
-              alt="Nigerian foodstuff products arranged for sale"
+              src={heroImage}
+              alt="Nigerian foodstuff bundle arranged for sale"
               width={960}
               height={540}
               priority
@@ -97,7 +106,7 @@ export default async function StorefrontPage({ params }: StorefrontPageProps) {
             <Link className="group rounded-lg border border-stone-200 bg-white p-4 hover:border-emerald-700" href={`/s/${business.slug}/products/${product.slug}`} key={product.id}>
               <div className="aspect-[4/3] overflow-hidden rounded-md bg-stone-100">
                 <Image
-                  src="/images/nigerian-food-market.png"
+                  src={product.imageUrl ?? "/images/products/family-food-bundle.webp"}
                   alt={`${product.name} product display`}
                   width={640}
                   height={480}

@@ -32,7 +32,11 @@ type PrismaBusiness = Prisma.BusinessGetPayload<{
   };
 }>;
 
-type PrismaProduct = Prisma.ProductGetPayload<Record<string, never>>;
+type PrismaProduct = Prisma.ProductGetPayload<{
+  include: {
+    images: true;
+  };
+}>;
 
 type PrismaOrder = Prisma.OrderGetPayload<Record<string, never>>;
 
@@ -84,6 +88,7 @@ function normalizeProduct(product: PrismaProduct): Product {
     compareAtPrice: product.compareAtPrice ? toNumber(product.compareAtPrice) : undefined,
     description: product.description,
     id: product.id,
+    imageUrl: product.images[0]?.url,
     isFeatured: product.isFeatured,
     name: product.name,
     price: toNumber(product.price),
@@ -189,6 +194,12 @@ export async function getProductsForBusinessData(businessId: string) {
   return withFallback(
     async () => {
       const products = await db.product.findMany({
+        include: {
+          images: {
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            take: 1,
+          },
+        },
         orderBy: {
           createdAt: "desc",
         },
@@ -210,6 +221,12 @@ export async function getProductBySlugData(businessId: string, slug: string) {
   return withFallback(
     async () => {
       const product = await db.product.findUnique({
+        include: {
+          images: {
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            take: 1,
+          },
+        },
         where: {
           businessId_slug: {
             businessId,
@@ -228,6 +245,12 @@ export async function getProductByIdData(productId: string) {
   return withFallback(
     async () => {
       const product = await db.product.findUnique({
+        include: {
+          images: {
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            take: 1,
+          },
+        },
         where: {
           id: productId,
         },

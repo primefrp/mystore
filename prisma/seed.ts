@@ -5,10 +5,11 @@ import {
   featureDefinitions,
   subscriptionPlans,
 } from "../src/lib/platform-config";
+import { normalizeDatabaseUrl } from "../src/lib/database-url";
 
-const connectionString =
-  process.env.DATABASE_URL ??
-  "postgresql://postgres:postgres@localhost:5432/foodstack_commerce";
+const connectionString = normalizeDatabaseUrl(
+  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/foodstack_commerce",
+);
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });

@@ -9,7 +9,7 @@ import {
   Store,
 } from "lucide-react";
 
-import { createStoreAction } from "@/app/actions";
+import { StoreSignupForm } from "@/components/store-signup-form";
 
 export default function Home() {
   return (
@@ -57,42 +57,7 @@ export default function Home() {
             <p className="mt-1 text-sm text-zinc-600">This creates your active admin workspace.</p>
           </div>
 
-          <form action={createStoreAction} className="mt-6 grid gap-5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Owner name" name="ownerName" required />
-              <Field label="Owner email" name="email" required type="email" />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Store name" name="storeName" required />
-              <Field label="Phone number" name="phone" required />
-            </div>
-
-            <Field label="Store address" name="address" required />
-            <label className="grid gap-2">
-              <span className="text-sm font-medium">Store description</span>
-              <textarea className="min-h-28 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" name="description" required />
-            </label>
-
-            <label className="grid gap-2 sm:max-w-48">
-              <span className="text-sm font-medium">Store color</span>
-              <input className="h-10 rounded-md border border-stone-300 bg-white px-2" defaultValue="#047857" name="themeColor" type="color" />
-            </label>
-
-            <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
-              <h3 className="font-semibold">Bank transfer details</h3>
-              <p className="mt-1 text-sm text-zinc-600">You can add this now or later from admin settings.</p>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <Field label="Bank name" name="bankName" />
-                <Field label="Account number" name="accountNumber" />
-                <Field label="Account name" name="accountName" />
-              </div>
-            </div>
-
-            <button className="h-11 rounded-md bg-emerald-800 px-4 text-sm font-semibold text-white hover:bg-emerald-900" type="submit">
-              Create store
-            </button>
-          </form>
+          <StoreSignupForm />
         </section>
       </section>
     </main>
@@ -118,24 +83,5 @@ function SetupStep({
         </span>
       </div>
     </div>
-  );
-}
-
-function Field({
-  label,
-  name,
-  required,
-  type = "text",
-}: {
-  label: string;
-  name: string;
-  required?: boolean;
-  type?: string;
-}) {
-  return (
-    <label className="grid gap-2">
-      <span className="text-sm font-medium">{label}</span>
-      <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" name={name} required={required} type={type} />
-    </label>
   );
 }

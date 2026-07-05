@@ -14,7 +14,7 @@ const storeSignupSchema = z.object({
   accountNumber: z.string().trim().optional().or(z.literal("")),
   address: z.string().trim().min(3),
   bankName: z.string().trim().optional().or(z.literal("")),
-  description: z.string().trim().min(10),
+  description: z.string().trim().optional().or(z.literal("")),
   email: z.string().trim().email(),
   ownerName: z.string().trim().min(2),
   phone: z.string().trim().min(7),
@@ -22,8 +22,16 @@ const storeSignupSchema = z.object({
   themeColor: z.string().trim().min(4),
 });
 
+type StoreSignupValues = z.infer<typeof storeSignupSchema>;
+
+export type StoreSignupState = {
+  fieldErrors?: Partial<Record<keyof StoreSignupValues, string[]>>;
+  message: string;
+  status: "idle" | "error";
+};
+
 async function getUniqueBusinessSlug(name: string) {
-  const baseSlug = slugify(name);
+  const baseSlug = slugify(name) || `store-${Date.now()}`;
   let candidate = baseSlug;
   let suffix = 2;
 
@@ -46,8 +54,8 @@ async function getUniqueBusinessSlug(name: string) {
   }
 }
 
-export async function createStoreAction(formData: FormData) {
-  const parsed = storeSignupSchema.parse({
+export async function createStoreAction(_previousState: StoreSignupState, formData: FormData): Promise<StoreSignupState> {
+  const parsed = storeSignupSchema.safeParse({
     accountName: formData.get("accountName") ?? "",
     accountNumber: formData.get("accountNumber") ?? "",
     address: formData.get("address"),
@@ -60,97 +68,126 @@ export async function createStoreAction(formData: FormData) {
     themeColor: formData.get("themeColor") ?? "#047857",
   });
 
-  const slug = await getUniqueBusinessSlug(parsed.storeName);
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors as StoreSignupState["fieldErrors"],
+      message: "Please check the highlighted fields and try again.",
+      status: "error",
+    };
+  }
+
+  const signup = parsed.data;
   const coreFeatureKeys = featureDefinitions.filter((feature) => feature.isCore).map((feature) => feature.key);
 
-  const business = await db.$transaction(async (tx) => {
-    const owner = await tx.user.upsert({
-      create: {
-        email: parsed.email,
-        name: parsed.ownerName,
-        platformRole: "USER",
-      },
-      update: {
-        name: parsed.ownerName,
-      },
-      where: {
-        email: parsed.email,
-      },
-    });
+  let businessSlug = "";
 
-    const createdBusiness = await tx.business.create({
-      data: {
-        address: parsed.address,
-        description: parsed.description,
-        email: parsed.email,
-        memberships: {
-          create: {
-            role: "OWNER",
-            status: "ACTIVE",
-            userId: owner.id,
+  try {
+    const slug = await getUniqueBusinessSlug(signup.storeName);
+    const business = await db.$transaction(async (tx) => {
+      const owner = await tx.user.upsert({
+        create: {
+          email: signup.email,
+          name: signup.ownerName,
+          platformRole: "USER",
+        },
+        update: {
+          name: signup.ownerName,
+        },
+        where: {
+          email: signup.email,
+        },
+      });
+
+      const createdBusiness = await tx.business.create({
+        data: {
+          address: signup.address,
+          description: signup.description || null,
+          email: signup.email,
+          memberships: {
+            create: {
+              role: "OWNER",
+              status: "ACTIVE",
+              userId: owner.id,
+            },
           },
-        },
-        name: parsed.storeName,
-        phone: parsed.phone,
-        slug,
-        themeColor: parsed.themeColor,
-      },
-    });
-
-    await tx.businessFeature.createMany({
-      data: coreFeatureKeys.map((featureKey) => ({
-        businessId: createdBusiness.id,
-        enabled: true,
-        featureKey,
-        source: "PLAN" as const,
-      })),
-      skipDuplicates: true,
-    });
-
-    const starterPlan = await tx.subscriptionPlan.findUnique({
-      select: {
-        id: true,
-      },
-      where: {
-        name: "Starter",
-      },
-    });
-
-    if (starterPlan) {
-      await tx.businessSubscription.create({
-        data: {
-          businessId: createdBusiness.id,
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          planId: starterPlan.id,
-          status: "ACTIVE",
+          name: signup.storeName,
+          phone: signup.phone,
+          slug,
+          themeColor: signup.themeColor,
         },
       });
-    }
 
-    if (parsed.bankName && parsed.accountName && parsed.accountNumber) {
-      await tx.bankAccount.create({
-        data: {
-          accountName: parsed.accountName,
-          accountNumber: parsed.accountNumber,
-          bankName: parsed.bankName,
+      await tx.businessFeature.createMany({
+        data: coreFeatureKeys.map((featureKey) => ({
           businessId: createdBusiness.id,
-          isDefault: true,
+          enabled: true,
+          featureKey,
+          source: "PLAN" as const,
+        })),
+        skipDuplicates: true,
+      });
+
+      const starterPlan = await tx.subscriptionPlan.findUnique({
+        select: {
+          id: true,
+        },
+        where: {
+          name: "Starter",
         },
       });
-    }
 
-    return createdBusiness;
-  });
+      if (starterPlan) {
+        await tx.businessSubscription.create({
+          data: {
+            businessId: createdBusiness.id,
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            planId: starterPlan.id,
+            status: "ACTIVE",
+          },
+        });
+      }
 
-  const cookieStore = await cookies();
-  cookieStore.set(ACTIVE_BUSINESS_COOKIE, business.slug, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24 * 365,
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
+      if (signup.bankName && signup.accountName && signup.accountNumber) {
+        await tx.bankAccount.create({
+          data: {
+            accountName: signup.accountName,
+            accountNumber: signup.accountNumber,
+            bankName: signup.bankName,
+            businessId: createdBusiness.id,
+            isDefault: true,
+          },
+        });
+      }
+
+      return createdBusiness;
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set(ACTIVE_BUSINESS_COOKIE, business.slug, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    businessSlug = business.slug;
+  } catch (error) {
+    console.error("Store signup failed", error);
+
+    return {
+      message: "We could not create your store. Please check the database connection and try again.",
+      status: "error",
+    };
+  }
+
+  if (!businessSlug) {
+    return {
+      message: "We could not finish store setup. Please try again.",
+      status: "error",
+    };
+  }
 
   redirect("/admin");
 }

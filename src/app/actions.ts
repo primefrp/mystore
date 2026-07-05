@@ -83,85 +83,81 @@ export async function createStoreAction(_previousState: StoreSignupState, formDa
 
   try {
     const slug = await getUniqueBusinessSlug(signup.storeName);
-    const business = await db.$transaction(async (tx) => {
-      const owner = await tx.user.upsert({
-        create: {
-          email: signup.email,
-          name: signup.ownerName,
-          platformRole: "USER",
-        },
-        update: {
-          name: signup.ownerName,
-        },
-        where: {
-          email: signup.email,
-        },
-      });
-
-      const createdBusiness = await tx.business.create({
-        data: {
-          address: signup.address,
-          description: signup.description || null,
-          email: signup.email,
-          memberships: {
-            create: {
-              role: "OWNER",
-              status: "ACTIVE",
-              userId: owner.id,
-            },
-          },
-          name: signup.storeName,
-          phone: signup.phone,
-          slug,
-          themeColor: signup.themeColor,
-        },
-      });
-
-      await tx.businessFeature.createMany({
-        data: coreFeatureKeys.map((featureKey) => ({
-          businessId: createdBusiness.id,
-          enabled: true,
-          featureKey,
-          source: "PLAN" as const,
-        })),
-        skipDuplicates: true,
-      });
-
-      const starterPlan = await tx.subscriptionPlan.findUnique({
-        select: {
-          id: true,
-        },
-        where: {
-          name: "Starter",
-        },
-      });
-
-      if (starterPlan) {
-        await tx.businessSubscription.create({
-          data: {
-            businessId: createdBusiness.id,
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            planId: starterPlan.id,
-            status: "ACTIVE",
-          },
-        });
-      }
-
-      if (signup.bankName && signup.accountName && signup.accountNumber) {
-        await tx.bankAccount.create({
-          data: {
-            accountName: signup.accountName,
-            accountNumber: signup.accountNumber,
-            bankName: signup.bankName,
-            businessId: createdBusiness.id,
-            isDefault: true,
-          },
-        });
-      }
-
-      return createdBusiness;
+    const owner = await db.user.upsert({
+      create: {
+        email: signup.email,
+        name: signup.ownerName,
+        platformRole: "USER",
+      },
+      update: {
+        name: signup.ownerName,
+      },
+      where: {
+        email: signup.email,
+      },
     });
+
+    const business = await db.business.create({
+      data: {
+        address: signup.address,
+        description: signup.description || null,
+        email: signup.email,
+        memberships: {
+          create: {
+            role: "OWNER",
+            status: "ACTIVE",
+            userId: owner.id,
+          },
+        },
+        name: signup.storeName,
+        phone: signup.phone,
+        slug,
+        themeColor: signup.themeColor,
+      },
+    });
+
+    await db.businessFeature.createMany({
+      data: coreFeatureKeys.map((featureKey) => ({
+        businessId: business.id,
+        enabled: true,
+        featureKey,
+        source: "PLAN" as const,
+      })),
+      skipDuplicates: true,
+    });
+
+    const starterPlan = await db.subscriptionPlan.findUnique({
+      select: {
+        id: true,
+      },
+      where: {
+        name: "Starter",
+      },
+    });
+
+    if (starterPlan) {
+      await db.businessSubscription.create({
+        data: {
+          businessId: business.id,
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          planId: starterPlan.id,
+          status: "ACTIVE",
+        },
+      });
+    }
+
+    if (signup.bankName && signup.accountName && signup.accountNumber) {
+      await db.bankAccount.create({
+        data: {
+          accountName: signup.accountName,
+          accountNumber: signup.accountNumber,
+          bankName: signup.bankName,
+          businessId: business.id,
+          isDefault: true,
+        },
+      });
+    }
 
     const cookieStore = await cookies();
     cookieStore.set(ACTIVE_BUSINESS_COOKIE, business.slug, {

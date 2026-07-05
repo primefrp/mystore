@@ -47,63 +47,85 @@ export async function createOrderAction(formData: FormData) {
     quantity,
   }));
 
-  const redirectPath = await db.$transaction(async (tx) => {
-    const business = await tx.business.findUnique({
-      where: {
-        slug: parsed.businessSlug,
-      },
-    });
+  const business = await db.business.findUnique({
+    where: {
+      slug: parsed.businessSlug,
+    },
+  });
 
-    if (!business) {
-      throw new Error("Business not found.");
+  if (!business) {
+    throw new Error("Business not found.");
+  }
+
+  const products = await db.product.findMany({
+    where: {
+      businessId: business.id,
+      id: {
+        in: requestedItems.map((item) => item.productId),
+      },
+      status: "ACTIVE",
+    },
+  });
+
+  if (products.length !== requestedItems.length) {
+    throw new Error("One or more products are no longer available.");
+  }
+
+  for (const item of requestedItems) {
+    const product = products.find((candidate) => candidate.id === item.productId);
+
+    if (!product) {
+      throw new Error("Product not found.");
     }
 
-    const products = await tx.product.findMany({
-      where: {
-        businessId: business.id,
-        id: {
-          in: requestedItems.map((item) => item.productId),
-        },
-        status: "ACTIVE",
-      },
-    });
+    if (product.stockQuantity < item.quantity) {
+      throw new Error(`${product.name} has only ${product.stockQuantity} units left.`);
+    }
+  }
 
-    if (products.length !== requestedItems.length) {
-      throw new Error("One or more products are no longer available.");
+  const subtotal = requestedItems.reduce((total, item) => {
+    const product = products.find((candidate) => candidate.id === item.productId);
+
+    if (!product) {
+      return total;
     }
 
+    return total + Number(product.price) * item.quantity;
+  }, 0);
+
+  const deliveryFee = parsed.deliveryMethod === "LOCAL_DELIVERY" ? 2500 : 0;
+  const total = subtotal + deliveryFee;
+  const orderPrefixValue = orderPrefix(business.name) || "ORD";
+  const orderNumber = `${orderPrefixValue}-${Date.now().toString().slice(-8)}`;
+  const decrementedItems: typeof requestedItems = [];
+  let customerId = "";
+  let redirectPath = "";
+
+  try {
     for (const item of requestedItems) {
-      const product = products.find((candidate) => candidate.id === item.productId);
+      const result = await db.product.updateMany({
+        data: {
+          stockQuantity: {
+            decrement: item.quantity,
+          },
+        },
+        where: {
+          businessId: business.id,
+          id: item.productId,
+          stockQuantity: {
+            gte: item.quantity,
+          },
+        },
+      });
 
-      if (!product) {
-        throw new Error("Product not found.");
+      if (result.count !== 1) {
+        throw new Error("Product stock changed before the order could be placed.");
       }
 
-      if (product.stockQuantity < item.quantity) {
-        throw new Error(`${product.name} has only ${product.stockQuantity} units left.`);
-      }
+      decrementedItems.push(item);
     }
 
-    const subtotal = requestedItems.reduce((total, item) => {
-      const product = products.find((candidate) => candidate.id === item.productId);
-
-      if (!product) {
-        return total;
-      }
-
-      return total + Number(product.price) * item.quantity;
-    }, 0);
-
-    const deliveryFee = parsed.deliveryMethod === "LOCAL_DELIVERY" ? 2500 : 0;
-    const total = subtotal + deliveryFee;
-    const orderCount = await tx.order.count({
-      where: {
-        businessId: business.id,
-      },
-    });
-    const orderNumber = `${orderPrefix(business.name)}-${1001 + orderCount}`;
-
-    const customer = await tx.customer.create({
+    const customer = await db.customer.create({
       data: {
         businessId: business.id,
         defaultAddress: parsed.deliveryAddress || undefined,
@@ -112,8 +134,9 @@ export async function createOrderAction(formData: FormData) {
         phone: parsed.customerPhone,
       },
     });
+    customerId = customer.id;
 
-    const order = await tx.order.create({
+    const order = await db.order.create({
       data: {
         businessId: business.id,
         customerId: customer.id,
@@ -161,29 +184,38 @@ export async function createOrderAction(formData: FormData) {
       },
     });
 
-    for (const item of requestedItems) {
-      const result = await tx.product.updateMany({
-        data: {
-          stockQuantity: {
-            decrement: item.quantity,
+    redirectPath = `/s/${business.slug}/order-confirmation/${order.id}`;
+  } catch (error) {
+    await Promise.all(
+      decrementedItems.map((item) =>
+        db.product.updateMany({
+          data: {
+            stockQuantity: {
+              increment: item.quantity,
+            },
           },
-        },
+          where: {
+            businessId: business.id,
+            id: item.productId,
+          },
+        }),
+      ),
+    );
+
+    if (customerId) {
+      await db.customer.delete({
         where: {
-          businessId: business.id,
-          id: item.productId,
-          stockQuantity: {
-            gte: item.quantity,
-          },
+          id: customerId,
         },
       });
-
-      if (result.count !== 1) {
-        throw new Error("Product stock changed before the order could be placed.");
-      }
     }
 
-    return `/s/${business.slug}/order-confirmation/${order.id}`;
-  });
+    throw error;
+  }
+
+  if (!redirectPath) {
+    throw new Error("Order could not be created.");
+  }
 
   redirect(redirectPath);
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { OrderPlacedNotice } from "@/components/storefront/order-placed-notice";
 import { formatCurrency, titleCase } from "@/lib/format";
 import {
   getBusinessBySlugData,
@@ -44,6 +45,8 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
               </p>
             </div>
           </div>
+
+          <OrderPlacedNotice businessSlug={business.slug} orderNumber={order.orderNumber} />
 
           <div className="mt-6 divide-y divide-stone-200 rounded-lg border border-stone-200">
             {order.items.map((item) => (

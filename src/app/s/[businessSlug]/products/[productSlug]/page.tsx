@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, PackageCheck, ShoppingCart } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { AddToCartPanel } from "@/components/storefront/add-to-cart-panel";
 import { formatCurrency } from "@/lib/format";
 import { getBusinessBySlugData, getProductBySlugData } from "@/lib/marketplace";
 
@@ -63,27 +64,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
             <p className="mt-5 text-base leading-7 text-zinc-600">{product.description}</p>
 
-            <div className="mt-6 grid gap-3 rounded-lg bg-stone-50 p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-800">
-                <PackageCheck size={18} className="text-emerald-800" aria-hidden="true" />
-                {product.stockQuantity} units in stock
-              </div>
-              <div className="grid grid-cols-[96px_1fr] gap-3">
-                <label className="pt-2 text-sm font-medium text-zinc-700" htmlFor="quantity">Quantity</label>
-                <input
-                  className="h-10 rounded-md border border-stone-300 bg-white px-3 text-sm outline-none focus:border-emerald-700"
-                  defaultValue="1"
-                  id="quantity"
-                  min="1"
-                  type="number"
-                />
-              </div>
-            </div>
-
-            <button className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-emerald-800 px-4 text-sm font-semibold text-white hover:bg-emerald-900">
-              <ShoppingCart size={17} aria-hidden="true" />
-              Add to cart
-            </button>
+            <AddToCartPanel
+              businessSlug={business.slug}
+              checkoutHref={`/s/${business.slug}/checkout`}
+              product={{
+                id: product.id,
+                name: product.name,
+                stockQuantity: product.stockQuantity,
+              }}
+            />
           </div>
         </section>
       </div>

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ACTIVE_BUSINESS_COOKIE } from "@/lib/auth";
+import { getDatabaseUrlSetupIssue } from "@/lib/database-url";
 import { db } from "@/lib/db";
 import { featureDefinitions } from "@/lib/platform-config";
 import { slugify } from "@/lib/slug";
@@ -54,6 +55,35 @@ async function getUniqueBusinessSlug(name: string) {
   }
 }
 
+function getSignupErrorMessage(error: unknown) {
+  const setupIssue = getDatabaseUrlSetupIssue(process.env.DATABASE_URL);
+
+  if (setupIssue) {
+    return setupIssue;
+  }
+
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (code === "P1000" || message.toLowerCase().includes("authentication failed") || message.toLowerCase().includes("password authentication failed")) {
+    return "Supabase rejected the database login. Check the DATABASE_URL password in Vercel, then redeploy.";
+  }
+
+  if (code === "P1001" || message.includes("ENOTFOUND") || message.includes("ETIMEDOUT") || message.includes("ECONNREFUSED") || message.toLowerCase().includes("network")) {
+    return "Vercel cannot reach the database. Use the Supabase pooler DATABASE_URL in Vercel, not the direct db URL, then redeploy.";
+  }
+
+  if (code === "P2021" || message.toLowerCase().includes("does not exist")) {
+    return "The Supabase database tables are missing. Run prisma db push against Supabase, then try signup again.";
+  }
+
+  if (message.includes("Unable to start a transaction")) {
+    return "This deployment is still using the older transaction code. Wait for Vercel to finish redeploying the latest commit, then try again.";
+  }
+
+  return "We could not create your store. Open the latest Vercel Function log and check the Store signup failed entry.";
+}
+
 export async function createStoreAction(_previousState: StoreSignupState, formData: FormData): Promise<StoreSignupState> {
   const parsed = storeSignupSchema.safeParse({
     accountName: formData.get("accountName") ?? "",
@@ -82,6 +112,15 @@ export async function createStoreAction(_previousState: StoreSignupState, formDa
   let businessSlug = "";
 
   try {
+    const setupIssue = getDatabaseUrlSetupIssue(process.env.DATABASE_URL);
+
+    if (setupIssue) {
+      return {
+        message: setupIssue,
+        status: "error",
+      };
+    }
+
     const slug = await getUniqueBusinessSlug(signup.storeName);
     const owner = await db.user.upsert({
       create: {
@@ -173,7 +212,7 @@ export async function createStoreAction(_previousState: StoreSignupState, formDa
     console.error("Store signup failed", error);
 
     return {
-      message: "We could not create your store. Please check the database connection and try again.",
+      message: getSignupErrorMessage(error),
       status: "error",
     };
   }

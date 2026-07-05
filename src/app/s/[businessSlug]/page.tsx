@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, LogIn, Package, Search, ShoppingCart } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { CartStockLabel } from "@/components/storefront/cart-stock-label";
 import { formatCurrency } from "@/lib/format";
 import {
   getBusinessBySlugData,
@@ -117,7 +118,9 @@ export default async function StorefrontPage({ params }: StorefrontPageProps) {
                 <div>
                   <h3 className="font-semibold">{product.name}</h3>
                   <p className="mt-1 text-sm text-zinc-600">{product.unit}</p>
-                  <p className="mt-1 text-xs font-semibold text-emerald-800">{product.stockQuantity} left</p>
+                  <p className="mt-1 text-xs font-semibold text-emerald-800">
+                    <CartStockLabel businessSlug={business.slug} productId={product.id} stockQuantity={product.stockQuantity} />
+                  </p>
                 </div>
                 <p className="text-base font-semibold">{formatCurrency(product.price, business.currency)}</p>
               </div>

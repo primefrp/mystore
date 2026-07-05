@@ -1,3 +1,7 @@
+import { cookies } from "next/headers";
+
+export const ACTIVE_BUSINESS_COOKIE = "foodstack-active-business";
+
 export type SessionUser = {
   id: string;
   name: string;
@@ -7,11 +11,19 @@ export type SessionUser = {
 };
 
 export async function getCurrentUser(): Promise<SessionUser> {
+  const activeBusinessSlug = await getActiveBusinessSlug();
+
   return {
-    activeBusinessId: "biz_ajibola",
-    email: "admin@foodstack.example",
-    id: "user_super_admin",
-    name: "Platform Admin",
-    platformRole: "SUPER_ADMIN",
+    activeBusinessId: activeBusinessSlug,
+    email: "store.owner@example.com",
+    id: "current_store_owner",
+    name: "Store Owner",
+    platformRole: "USER",
   };
+}
+
+export async function getActiveBusinessSlug() {
+  const cookieStore = await cookies();
+
+  return cookieStore.get(ACTIVE_BUSINESS_COOKIE)?.value;
 }

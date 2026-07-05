@@ -119,27 +119,27 @@ export function CheckoutCart({ action, bankAccount, business, products }: Checko
             <label className="text-sm font-medium" htmlFor="name">
               Customer name
             </label>
-            <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" id="name" name="customerName" placeholder="Full name" required />
+            <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" id="name" name="customerName" required />
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             <div className="grid gap-2">
               <label className="text-sm font-medium" htmlFor="phone">
                 Phone number
               </label>
-              <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" id="phone" name="customerPhone" placeholder="+234" required />
+              <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" id="phone" name="customerPhone" required />
             </div>
             <div className="grid gap-2">
               <label className="text-sm font-medium" htmlFor="email">
                 Email
               </label>
-              <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" id="email" name="customerEmail" placeholder="name@example.com" type="email" />
+              <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" id="email" name="customerEmail" type="email" />
             </div>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium" htmlFor="address">
               Delivery address
             </label>
-            <textarea className="min-h-24 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" id="address" name="deliveryAddress" placeholder="Street, area, city" />
+            <textarea className="min-h-24 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" id="address" name="deliveryAddress" />
           </div>
         </div>
 
@@ -210,7 +210,9 @@ export function CheckoutCart({ action, bankAccount, business, products }: Checko
                 <span>
                   <span className="block font-medium">{item.product.name}</span>
                   <span className="block text-zinc-500">{item.product.unit}</span>
-                  <span className="mt-1 block text-xs font-medium text-emerald-800">{item.product.stockQuantity} left</span>
+                  <span className="mt-1 block text-xs font-medium text-emerald-800">
+                    {Math.max(item.product.stockQuantity - item.quantity, 0)} left after cart
+                  </span>
                 </span>
                 <span className="font-semibold">{formatCurrency(item.product.price * item.quantity, business.currency)}</span>
               </div>

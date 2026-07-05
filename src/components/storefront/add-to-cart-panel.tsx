@@ -5,6 +5,7 @@ import { CheckCircle2, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
 import { getCartStorageKey, normalizeCartQuantity, type StoredCartItem } from "@/lib/cart";
+import { CartStockLabel, useCartQuantity } from "@/components/storefront/cart-stock-label";
 
 type AddToCartPanelProps = {
   businessSlug: string;
@@ -32,14 +33,17 @@ function writeCart(storageKey: string, items: StoredCartItem[]) {
 export function AddToCartPanel({ businessSlug, checkoutHref, product }: AddToCartPanelProps) {
   const [quantity, setQuantity] = useState(1);
   const [notice, setNotice] = useState("");
-  const isOutOfStock = product.stockQuantity <= 0;
+  const selectedQuantity = useCartQuantity(businessSlug, product.id);
+  const remainingQuantity = Math.max(product.stockQuantity - selectedQuantity, 0);
+  const isOutOfStock = remainingQuantity <= 0;
 
   function addToCart() {
     const storageKey = getCartStorageKey(businessSlug);
     const cart = readCart(storageKey);
     const existingItem = cart.find((item) => item.productId === product.id);
     const existingQuantity = existingItem?.quantity ?? 0;
-    const requestedQuantity = normalizeCartQuantity(quantity, product.stockQuantity);
+    const availableQuantity = Math.max(product.stockQuantity - existingQuantity, 0);
+    const requestedQuantity = normalizeCartQuantity(quantity, availableQuantity);
     const nextQuantity = Math.min(existingQuantity + requestedQuantity, product.stockQuantity);
 
     if (nextQuantity <= existingQuantity) {
@@ -52,12 +56,15 @@ export function AddToCartPanel({ businessSlug, checkoutHref, product }: AddToCar
       : [...cart, { productId: product.id, quantity: nextQuantity }];
 
     writeCart(storageKey, nextCart);
-    setNotice(`${product.name} added to cart. ${nextQuantity} selected.`);
+    setQuantity(1);
+    setNotice(`${product.name} added to cart. ${Math.max(product.stockQuantity - nextQuantity, 0)} left after cart.`);
   }
 
   return (
     <div className="mt-6 grid gap-4 rounded-lg bg-stone-50 p-4">
-      <p className="text-sm font-medium text-zinc-800">{product.stockQuantity} units available</p>
+      <p className="text-sm font-medium text-zinc-800">
+        <CartStockLabel businessSlug={businessSlug} productId={product.id} stockQuantity={product.stockQuantity} />
+      </p>
       <div className="grid grid-cols-[96px_1fr] gap-3">
         <label className="pt-2 text-sm font-medium text-zinc-700" htmlFor="quantity">
           Quantity
@@ -66,9 +73,9 @@ export function AddToCartPanel({ businessSlug, checkoutHref, product }: AddToCar
           className="h-10 rounded-md border border-stone-300 bg-white px-3 text-sm outline-none focus:border-emerald-700"
           disabled={isOutOfStock}
           id="quantity"
-          max={Math.max(product.stockQuantity, 1)}
+          max={Math.max(remainingQuantity, 1)}
           min="1"
-          onChange={(event) => setQuantity(normalizeCartQuantity(Number(event.target.value), product.stockQuantity))}
+          onChange={(event) => setQuantity(normalizeCartQuantity(Number(event.target.value), remainingQuantity))}
           type="number"
           value={quantity}
         />
@@ -80,7 +87,7 @@ export function AddToCartPanel({ businessSlug, checkoutHref, product }: AddToCar
         type="button"
       >
         <ShoppingCart size={17} aria-hidden="true" />
-        {isOutOfStock ? "Out of stock" : "Add to cart"}
+        {isOutOfStock ? "All selected" : "Add to cart"}
       </button>
       {notice ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950" role="status">

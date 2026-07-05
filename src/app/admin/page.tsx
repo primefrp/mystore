@@ -6,10 +6,14 @@ import {
   Boxes,
   ClipboardList,
   Package,
+  PackagePlus,
   Settings,
+  ShieldCheck,
+  Store,
   TrendingUp,
 } from "lucide-react";
 
+import { NoActiveStore } from "@/components/admin/no-active-store";
 import { getCurrentUser } from "@/lib/auth";
 import { formatCurrency, titleCase } from "@/lib/format";
 import {
@@ -26,7 +30,7 @@ export default async function AdminDashboardPage() {
   const business = await getAdminBusinessData();
 
   if (!business) {
-    return null;
+    return <NoActiveStore />;
   }
 
   const products = await getProductsForBusinessData(business.id);
@@ -52,12 +56,16 @@ export default async function AdminDashboardPage() {
               <ClipboardList size={16} aria-hidden="true" />
               Orders
             </Link>
+            <Link className="inline-flex h-10 items-center gap-2 rounded-md border border-stone-300 px-4 text-sm font-medium hover:bg-stone-100" href="/admin/settings/store">
+              <Settings size={16} aria-hidden="true" />
+              Store settings
+            </Link>
             <Link className="inline-flex h-10 items-center gap-2 rounded-md border border-stone-300 px-4 text-sm font-medium hover:bg-stone-100" href={`/s/${business.slug}`}>
               <ArrowRight size={16} aria-hidden="true" />
               Storefront
             </Link>
             <Link className="inline-flex h-10 items-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white hover:bg-zinc-800" href="/super-admin">
-              <Settings size={16} aria-hidden="true" />
+              <ShieldCheck size={16} aria-hidden="true" />
               Platform
             </Link>
           </div>
@@ -72,13 +80,31 @@ export default async function AdminDashboardPage() {
           <Metric icon={<Banknote size={19} aria-hidden="true" />} label="Pending payments" value={pendingPayments.toString()} />
         </div>
 
+        <div className="mt-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">Store Setup</h2>
+              <p className="mt-1 text-sm text-zinc-600">Set the pieces customers need before you share your storefront.</p>
+            </div>
+            <Link className="inline-flex h-10 items-center gap-2 rounded-md bg-emerald-800 px-4 text-sm font-semibold text-white hover:bg-emerald-900" href="/admin/products/new">
+              <PackagePlus size={16} aria-hidden="true" />
+              Add product
+            </Link>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <SetupLink icon={<Store size={17} aria-hidden="true" />} label="Store details" text="Name, contact, address, color, and description." href="/admin/settings/store" />
+            <SetupLink icon={<Package size={17} aria-hidden="true" />} label="Products" text="Items, prices, units, quantities, and images." href="/admin/products" />
+            <SetupLink icon={<Banknote size={17} aria-hidden="true" />} label="Payment account" text="Bank details shown to buyers at checkout." href="/admin/settings/payments" />
+          </div>
+        </div>
+
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
           <div className="rounded-lg border border-stone-200 bg-white">
             <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
-            <div>
-              <h2 className="text-lg font-semibold">Recent Orders</h2>
-              <p className="text-sm text-zinc-600">Manual payment and delivery statuses are tracked here.</p>
-            </div>
+              <div>
+                <h2 className="text-lg font-semibold">Recent Orders</h2>
+                <p className="text-sm text-zinc-600">Manual payment and delivery statuses are tracked here.</p>
+              </div>
               <Link className="text-sm font-semibold text-emerald-800 hover:text-emerald-950" href="/admin/orders">
                 View all
               </Link>
@@ -107,6 +133,13 @@ export default async function AdminDashboardPage() {
                       <td className="px-5 py-4 text-right font-semibold">{formatCurrency(order.total, business.currency)}</td>
                     </tr>
                   ))}
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td className="px-5 py-8 text-center text-sm text-zinc-600" colSpan={5}>
+                        No orders yet.
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>
@@ -173,20 +206,51 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           <div className="grid gap-3 p-5 md:grid-cols-3">
-            {products.slice(0, 6).map((product) => (
-              <div className="rounded-lg border border-stone-200 p-4" key={product.id}>
-                <h3 className="font-semibold">{product.name}</h3>
-                <p className="mt-1 text-sm text-zinc-600">{product.unit}</p>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <span className="text-sm font-semibold">{formatCurrency(product.price, business.currency)}</span>
-                  <span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">{product.stockQuantity} left</span>
+            {products.length > 0 ? (
+              products.slice(0, 6).map((product) => (
+                <div className="rounded-lg border border-stone-200 p-4" key={product.id}>
+                  <h3 className="font-semibold">{product.name}</h3>
+                  <p className="mt-1 text-sm text-zinc-600">{product.unit}</p>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold">{formatCurrency(product.price, business.currency)}</span>
+                    <span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">{product.stockQuantity} left</span>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="rounded-lg border border-dashed border-stone-300 p-5 md:col-span-3">
+                <p className="text-sm text-zinc-600">No products yet. Add your first item with price, unit, and quantity.</p>
+                <Link className="mt-3 inline-flex h-9 items-center rounded-md bg-emerald-800 px-3 text-sm font-semibold text-white hover:bg-emerald-900" href="/admin/products/new">
+                  Add first product
+                </Link>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
     </main>
+  );
+}
+
+function SetupLink({
+  href,
+  icon,
+  label,
+  text,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  text: string;
+}) {
+  return (
+    <Link className="rounded-lg border border-stone-200 p-4 hover:bg-stone-50" href={href}>
+      <span className="flex items-center gap-2 font-semibold">
+        <span className="text-emerald-800">{icon}</span>
+        {label}
+      </span>
+      <span className="mt-2 block text-sm leading-6 text-zinc-600">{text}</span>
+    </Link>
   );
 }
 

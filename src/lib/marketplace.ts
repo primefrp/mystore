@@ -1,16 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
+import { getActiveBusinessSlug } from "@/lib/auth";
 import { db } from "@/lib/db";
-import {
-  getBankAccountsForBusiness,
-  getBusinessBySlug,
-  getCategoriesForBusiness,
-  getDefaultBankAccount,
-  getOrdersForBusiness,
-  getProductBySlug,
-  getProductsForBusiness,
-  sampleBusinesses,
-} from "@/lib/sample-data";
 import type {
   BankAccount,
   Business,
@@ -151,10 +142,11 @@ async function withFallback<T>(query: () => Promise<T>, fallback: () => T) {
   try {
     return await query();
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("Using sample marketplace data because the database is unavailable.", error);
+    if (process.env.NODE_ENV === "production") {
+      throw error;
     }
 
+    console.warn("Using empty marketplace data because the database is unavailable.", error);
     return fallback();
   }
 }
@@ -182,12 +174,18 @@ export async function getBusinessBySlugData(slug: string) {
 
       return business ? normalizeBusiness(business) : undefined;
     },
-    () => getBusinessBySlug(slug),
+    () => undefined,
   );
 }
 
 export async function getAdminBusinessData() {
-  return getBusinessBySlugData("ajibola-food-market");
+  const activeBusinessSlug = await getActiveBusinessSlug();
+
+  if (!activeBusinessSlug) {
+    return undefined;
+  }
+
+  return getBusinessBySlugData(activeBusinessSlug);
 }
 
 export async function getProductsForBusinessData(businessId: string) {
@@ -213,7 +211,7 @@ export async function getProductsForBusinessData(businessId: string) {
 
       return products.map(normalizeProduct);
     },
-    () => getProductsForBusiness(businessId),
+    () => [],
   );
 }
 
@@ -237,7 +235,7 @@ export async function getProductBySlugData(businessId: string, slug: string) {
 
       return product ? normalizeProduct(product) : undefined;
     },
-    () => getProductBySlug(businessId, slug),
+    () => undefined,
   );
 }
 
@@ -258,7 +256,7 @@ export async function getProductByIdData(productId: string) {
 
       return product ? normalizeProduct(product) : undefined;
     },
-    () => getProductsForBusiness(sampleBusinesses[0].id).find((product) => product.id === productId),
+    () => undefined,
   );
 }
 
@@ -275,7 +273,7 @@ export async function getCategoriesForBusinessData(businessId: string) {
 
       return categories.map(normalizeCategory);
     },
-    () => getCategoriesForBusiness(businessId),
+    () => [],
   );
 }
 
@@ -293,7 +291,7 @@ export async function getOrdersForBusinessData(businessId: string) {
 
       return orders.map(normalizeOrder);
     },
-    () => getOrdersForBusiness(businessId),
+    () => [],
   );
 }
 
@@ -310,7 +308,7 @@ export async function getBankAccountsForBusinessData(businessId: string) {
 
       return accounts.map(normalizeBankAccount);
     },
-    () => getBankAccountsForBusiness(businessId),
+    () => [],
   );
 }
 
@@ -327,7 +325,7 @@ export async function getDefaultBankAccountData(businessId: string) {
 
       return account ? normalizeBankAccount(account) : undefined;
     },
-    () => getDefaultBankAccount(businessId),
+    () => undefined,
   );
 }
 

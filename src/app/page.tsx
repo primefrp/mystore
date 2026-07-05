@@ -1,156 +1,105 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
   Banknote,
   Boxes,
-  Building2,
-  CreditCard,
   LayoutDashboard,
-  ShieldCheck,
+  PackagePlus,
+  Palette,
   Store,
 } from "lucide-react";
 
-import {
-  featureDefinitions,
-  sampleBusinesses,
-  subscriptionPlans,
-} from "@/lib/sample-data";
+import { createStoreAction } from "@/app/actions";
 
 export default function Home() {
-  const primaryBusiness = sampleBusinesses[0];
-  const moduleCount = featureDefinitions.filter((feature) => !feature.isCore).length;
-
   return (
-    <main className="min-h-screen">
-      <section className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10">
-          <nav className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-lg bg-emerald-800 text-white">
-                <Boxes size={20} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-base font-semibold">FoodStack Commerce</p>
-                <p className="text-sm text-zinc-600">Modular food commerce SaaS</p>
-              </div>
+    <main className="min-h-screen bg-stone-50">
+      <header className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-10">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 place-items-center rounded-lg bg-emerald-800 text-white">
+              <Boxes size={20} aria-hidden="true" />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link className="inline-flex h-10 items-center gap-2 rounded-md border border-stone-300 px-4 text-sm font-medium hover:bg-stone-100" href="/admin">
-                <LayoutDashboard size={16} aria-hidden="true" />
-                Admin
-              </Link>
-              <Link className="inline-flex h-10 items-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white hover:bg-zinc-800" href={`/s/${primaryBusiness.slug}`}>
-                <Store size={16} aria-hidden="true" />
-                Storefront
-              </Link>
-            </div>
-          </nav>
-
-          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-800">Platform workspace</p>
-              <h1 className="mt-3 text-4xl font-semibold leading-tight text-zinc-950 sm:text-5xl">
-                Multi-business foodstuff commerce, ready for optional modules.
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-600">
-                The foundation is scoped for Nigerian food sellers, wholesalers, trainers, and agribusiness brands that need separate storefronts with plan-based features.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Metric label="Businesses" value={sampleBusinesses.length.toString()} />
-              <Metric label="Optional modules" value={moduleCount.toString()} />
-              <Metric label="Plans" value={subscriptionPlans.length.toString()} />
-              <Metric label="Payment mode" value="Bank transfer" />
+            <div>
+              <p className="text-base font-semibold">FoodStack Commerce</p>
+              <p className="text-sm text-zinc-600">Create your foodstuff store</p>
             </div>
           </div>
+          <Link className="inline-flex h-10 items-center gap-2 rounded-md border border-stone-300 px-4 text-sm font-medium hover:bg-stone-100" href="/admin">
+            <LayoutDashboard size={16} aria-hidden="true" />
+            Go to admin
+          </Link>
         </div>
-      </section>
+      </header>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px] lg:px-10">
-        <div className="space-y-6">
-          <div className="rounded-lg border border-stone-200 bg-white">
-            <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
-              <div>
-                <h2 className="text-lg font-semibold">Tenant Preview</h2>
-                <p className="text-sm text-zinc-600">Sample businesses seeded for storefront and admin flows.</p>
-              </div>
-              <Link className="inline-flex h-9 items-center gap-2 rounded-md border border-stone-300 px-3 text-sm font-medium hover:bg-stone-100" href="/super-admin">
-                <ShieldCheck size={16} aria-hidden="true" />
-                Super Admin
-              </Link>
-            </div>
-            <div className="divide-y divide-stone-200">
-              {sampleBusinesses.map((business) => (
-                <div className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_auto] md:items-center" key={business.id}>
-                  <div className="flex items-start gap-3">
-                    <div className="grid size-11 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: business.themeColor }}>
-                      <Building2 size={20} className="text-white" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{business.name}</h3>
-                      <p className="mt-1 text-sm leading-6 text-zinc-600">{business.description}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {business.enabledFeatures.slice(0, 5).map((feature) => (
-                          <span className="rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-zinc-700" key={feature}>
-                            {feature.replaceAll("_", " ")}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <Link className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-800 px-4 text-sm font-medium text-white hover:bg-emerald-900" href={`/s/${business.slug}`}>
-                    Open
-                    <ArrowRight size={16} aria-hidden="true" />
-                  </Link>
-                </div>
-              ))}
-            </div>
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:px-10">
+        <aside className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-800">Seller setup</p>
+            <h1 className="mt-3 text-4xl font-semibold leading-tight text-zinc-950">
+              Start your own foodstuff storefront.
+            </h1>
+            <p className="mt-4 text-base leading-7 text-zinc-600">
+              Create your store, add products with prices and quantities, add your bank account, then share your storefront link with customers.
+            </p>
           </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <ModuleCard icon={<Store size={20} aria-hidden="true" />} title="Marketplace Core" text="Seller storefronts, products, categories, checkout, delivery, and order statuses." />
-            <ModuleCard icon={<Banknote size={20} aria-hidden="true" />} title="Seller Bank Details" text="Each seller can provide bank account details for manual transfer payments." />
-            <ModuleCard icon={<CreditCard size={20} aria-hidden="true" />} title="Paystack Later" text="The payment layer is prepared so online card and transfer checkout can be added later." />
+          <div className="grid gap-3">
+            <SetupStep icon={<Store size={18} aria-hidden="true" />} title="Create store" text="Add your business name, contact details, and address." />
+            <SetupStep icon={<PackagePlus size={18} aria-hidden="true" />} title="Add items" text="Create products, define unit, price, quantity, and image URL." />
+            <SetupStep icon={<Banknote size={18} aria-hidden="true" />} title="Collect payment" text="Add your seller bank account for manual transfer checkout." />
+            <SetupStep icon={<Palette size={18} aria-hidden="true" />} title="Share storefront" text="Your storefront is created from your store name and can be opened from admin." />
           </div>
-        </div>
-
-        <aside className="rounded-lg border border-stone-200 bg-white">
-          <div className="border-b border-stone-200 px-5 py-4">
-            <h2 className="text-lg font-semibold">Build Order</h2>
-            <p className="text-sm text-zinc-600">Current implementation milestones.</p>
-          </div>
-          <ol className="space-y-4 px-5 py-5">
-            {[
-              "Project foundation",
-              "Tenant-aware storefront",
-              "Business admin dashboard",
-              "Prisma schema",
-              "Feature toggle layer",
-              "Seller bank account settings",
-            ].map((item, index) => (
-              <li className="flex gap-3" key={item}>
-                <span className="grid size-7 shrink-0 place-items-center rounded-md bg-amber-100 text-sm font-semibold text-amber-900">{index + 1}</span>
-                <span className="pt-1 text-sm font-medium text-zinc-800">{item}</span>
-              </li>
-            ))}
-          </ol>
         </aside>
+
+        <section className="rounded-lg border border-stone-200 bg-white p-5">
+          <div>
+            <h2 className="text-2xl font-semibold">Sign up your store</h2>
+            <p className="mt-1 text-sm text-zinc-600">This creates your active admin workspace.</p>
+          </div>
+
+          <form action={createStoreAction} className="mt-6 grid gap-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Owner name" name="ownerName" required />
+              <Field label="Owner email" name="email" required type="email" />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Store name" name="storeName" required />
+              <Field label="Phone number" name="phone" required />
+            </div>
+
+            <Field label="Store address" name="address" required />
+            <label className="grid gap-2">
+              <span className="text-sm font-medium">Store description</span>
+              <textarea className="min-h-28 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" name="description" required />
+            </label>
+
+            <label className="grid gap-2 sm:max-w-48">
+              <span className="text-sm font-medium">Store color</span>
+              <input className="h-10 rounded-md border border-stone-300 bg-white px-2" defaultValue="#047857" name="themeColor" type="color" />
+            </label>
+
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+              <h3 className="font-semibold">Bank transfer details</h3>
+              <p className="mt-1 text-sm text-zinc-600">You can add this now or later from admin settings.</p>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <Field label="Bank name" name="bankName" />
+                <Field label="Account number" name="accountNumber" />
+                <Field label="Account name" name="accountName" />
+              </div>
+            </div>
+
+            <button className="h-11 rounded-md bg-emerald-800 px-4 text-sm font-semibold text-white hover:bg-emerald-900" type="submit">
+              Create store
+            </button>
+          </form>
+        </section>
       </section>
     </main>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
-      <p className="text-sm text-zinc-600">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-zinc-950">{value}</p>
-    </div>
-  );
-}
-
-function ModuleCard({
+function SetupStep({
   icon,
   text,
   title,
@@ -160,10 +109,33 @@ function ModuleCard({
   title: string;
 }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-5">
-      <div className="grid size-10 place-items-center rounded-lg bg-stone-100 text-zinc-800">{icon}</div>
-      <h3 className="mt-4 font-semibold">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-zinc-600">{text}</p>
+    <div className="rounded-lg border border-stone-200 bg-white p-4">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">{icon}</span>
+        <span>
+          <span className="block font-semibold">{title}</span>
+          <span className="mt-1 block text-sm leading-6 text-zinc-600">{text}</span>
+        </span>
+      </div>
     </div>
+  );
+}
+
+function Field({
+  label,
+  name,
+  required,
+  type = "text",
+}: {
+  label: string;
+  name: string;
+  required?: boolean;
+  type?: string;
+}) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-sm font-medium">{label}</span>
+      <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" name={name} required={required} type={type} />
+    </label>
   );
 }

@@ -29,6 +29,16 @@ const bankAccountSchema = z.object({
   businessSlug: z.string().min(1),
 });
 
+const businessSettingsSchema = z.object({
+  address: z.string().trim().min(3),
+  businessSlug: z.string().min(1),
+  description: z.string().trim().optional().or(z.literal("")),
+  email: z.string().trim().email(),
+  name: z.string().trim().min(2),
+  phone: z.string().trim().min(7),
+  themeColor: z.string().trim().min(4),
+});
+
 async function getBusinessIdBySlug(slug: string) {
   const business = await db.business.findUnique({
     select: {
@@ -225,6 +235,34 @@ export async function saveBankAccountAction(formData: FormData) {
   }
 
   redirect("/admin/settings/payments");
+}
+
+export async function saveBusinessSettingsAction(formData: FormData) {
+  const parsed = businessSettingsSchema.parse({
+    address: formData.get("address"),
+    businessSlug: formData.get("businessSlug"),
+    description: formData.get("description") ?? "",
+    email: formData.get("email"),
+    name: formData.get("name"),
+    phone: formData.get("phone"),
+    themeColor: formData.get("themeColor") ?? "#047857",
+  });
+
+  await db.business.update({
+    data: {
+      address: parsed.address,
+      description: parsed.description || null,
+      email: parsed.email,
+      name: parsed.name,
+      phone: parsed.phone,
+      themeColor: parsed.themeColor,
+    },
+    where: {
+      slug: parsed.businessSlug,
+    },
+  });
+
+  redirect("/admin/settings/store");
 }
 
 export async function confirmPaymentAction(formData: FormData) {

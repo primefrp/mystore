@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Banknote } from "lucide-react";
 
+import { NoActiveStore } from "@/components/admin/no-active-store";
 import {
   getAdminBusinessData,
   getDefaultBankAccountData,
@@ -13,7 +14,7 @@ export default async function PaymentSettingsPage() {
   const business = await getAdminBusinessData();
 
   if (!business) {
-    return null;
+    return <NoActiveStore />;
   }
 
   const bankAccount = await getDefaultBankAccountData(business.id);

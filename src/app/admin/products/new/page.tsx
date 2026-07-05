@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { NoActiveStore } from "@/components/admin/no-active-store";
 import { getAdminBusinessData, getCategoriesForBusinessData } from "@/lib/marketplace";
 import { saveProductAction } from "../../actions";
 
@@ -9,7 +10,7 @@ export default async function NewProductPage() {
   const business = await getAdminBusinessData();
 
   if (!business) {
-    return null;
+    return <NoActiveStore />;
   }
 
   const categories = await getCategoriesForBusinessData(business.id);
@@ -40,7 +41,7 @@ function ProductForm({
     <form action={saveProductAction} className="mt-6 grid gap-4">
       <input name="businessSlug" type="hidden" value={businessSlug} />
       <Field label="Name" name="name" required />
-      <Field label="Product image URL" name="imageUrl" placeholder="/images/products/local-rice.webp" />
+      <Field label="Product image URL" name="imageUrl" />
       <label className="grid gap-2">
         <span className="text-sm font-medium">Description</span>
         <textarea className="min-h-28 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" name="description" required />
@@ -49,7 +50,7 @@ function ProductForm({
         <Field label="Price" name="price" required type="number" />
         <Field label="Compare at price" name="compareAtPrice" type="number" />
         <Field label="Stock quantity" name="stockQuantity" required type="number" />
-        <Field label="Unit" name="unit" placeholder="50kg bag, paint bucket, 5 litre keg" required />
+        <Field label="Unit" name="unit" required />
       </div>
       <label className="grid gap-2">
         <span className="text-sm font-medium">Category</span>
@@ -83,20 +84,18 @@ function ProductForm({
 function Field({
   label,
   name,
-  placeholder,
   required,
   type = "text",
 }: {
   label: string;
   name: string;
-  placeholder?: string;
   required?: boolean;
   type?: string;
 }) {
   return (
     <label className="grid gap-2">
       <span className="text-sm font-medium">{label}</span>
-      <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" name={name} placeholder={placeholder} required={required} type={type} />
+      <input className="h-10 rounded-md border border-stone-300 px-3 text-sm outline-none focus:border-emerald-700" name={name} required={required} type={type} />
     </label>
   );
 }

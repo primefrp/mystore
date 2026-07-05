@@ -1,14 +1,45 @@
 import Link from "next/link";
 import { Building2, ShieldCheck, ToggleLeft } from "lucide-react";
 
+import { db } from "@/lib/db";
 import { formatCurrency, titleCase } from "@/lib/format";
-import {
-  featureDefinitions,
-  sampleBusinesses,
-  subscriptionPlans,
-} from "@/lib/sample-data";
 
-export default function SuperAdminPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SuperAdminPage() {
+  const [businesses, plans, features] = await Promise.all([
+    db.business.findMany({
+      include: {
+        features: true,
+        subscriptions: {
+          include: {
+            plan: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    db.subscriptionPlan.findMany({
+      include: {
+        features: true,
+      },
+      orderBy: {
+        price: "asc",
+      },
+    }),
+    db.featureDefinition.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    }),
+  ]);
+
   return (
     <main className="min-h-screen bg-stone-50">
       <header className="border-b border-stone-200 bg-white">
@@ -23,7 +54,7 @@ export default function SuperAdminPage() {
             </div>
           </div>
           <Link className="inline-flex h-10 items-center rounded-md border border-stone-300 px-4 text-sm font-medium hover:bg-stone-100" href="/">
-            Platform home
+            Store signup
           </Link>
         </div>
       </header>
@@ -49,19 +80,19 @@ export default function SuperAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-200">
-                {sampleBusinesses.map((business) => (
+                {businesses.map((business) => (
                   <tr key={business.id}>
                     <td className="px-5 py-4">
                       <span className="block font-semibold">{business.name}</span>
                       <span className="block text-zinc-500">{business.slug}</span>
                     </td>
-                    <td className="px-5 py-4">{business.plan}</td>
+                    <td className="px-5 py-4">{business.subscriptions[0]?.plan.name ?? "No plan"}</td>
                     <td className="px-5 py-4">
                       <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900">
                         {titleCase(business.status)}
                       </span>
                     </td>
-                    <td className="px-5 py-4">{business.enabledFeatures.length}</td>
+                    <td className="px-5 py-4">{business.features.filter((feature) => feature.enabled).length}</td>
                     <td className="px-5 py-4">
                       <Link className="font-semibold text-emerald-800 hover:text-emerald-950" href={`/s/${business.slug}`}>
                         Open
@@ -69,6 +100,13 @@ export default function SuperAdminPage() {
                     </td>
                   </tr>
                 ))}
+                {businesses.length === 0 ? (
+                  <tr>
+                    <td className="px-5 py-8 text-center text-sm text-zinc-600" colSpan={5}>
+                      No businesses have signed up yet.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -80,11 +118,11 @@ export default function SuperAdminPage() {
               <h2 className="text-lg font-semibold">Subscription Plans</h2>
             </div>
             <div className="grid gap-3 p-5">
-              {subscriptionPlans.map((plan) => (
-                <div className="rounded-lg border border-stone-200 p-4" key={plan.name}>
+              {plans.map((plan) => (
+                <div className="rounded-lg border border-stone-200 p-4" key={plan.id}>
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-semibold">{plan.name}</h3>
-                    <p className="text-sm font-semibold">{formatCurrency(plan.price)}</p>
+                    <p className="text-sm font-semibold">{formatCurrency(Number(plan.price))}</p>
                   </div>
                   <p className="mt-2 text-sm text-zinc-600">{plan.features.length} enabled features</p>
                 </div>
@@ -98,7 +136,7 @@ export default function SuperAdminPage() {
               <ToggleLeft size={20} className="text-zinc-500" aria-hidden="true" />
             </div>
             <div className="grid gap-2 p-5">
-              {featureDefinitions.map((feature) => (
+              {features.map((feature) => (
                 <div className="rounded-md bg-stone-50 px-3 py-2" key={feature.key}>
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm font-semibold">{feature.name}</span>

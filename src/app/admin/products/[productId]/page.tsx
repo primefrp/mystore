@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { NoActiveStore } from "@/components/admin/no-active-store";
 import {
   getAdminBusinessData,
   getCategoriesForBusinessData,
@@ -20,6 +21,10 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   const { productId } = await params;
   const business = await getAdminBusinessData();
   const product = await getProductByIdData(productId);
+
+  if (!business) {
+    return <NoActiveStore />;
+  }
 
   if (!business || !product || product.businessId !== business.id) {
     notFound();

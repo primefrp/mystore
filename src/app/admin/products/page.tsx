@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Archive, Plus } from "lucide-react";
 
+import { NoActiveStore } from "@/components/admin/no-active-store";
 import { formatCurrency, titleCase } from "@/lib/format";
 import {
   getAdminBusinessData,
@@ -16,7 +17,7 @@ export default async function ProductsPage() {
   const business = await getAdminBusinessData();
 
   if (!business) {
-    return null;
+    return <NoActiveStore />;
   }
 
   const products = await getProductsForBusinessData(business.id);
@@ -96,6 +97,13 @@ export default async function ProductsPage() {
                   </td>
                 </tr>
               ))}
+              {products.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-8 text-center text-sm text-zinc-600" colSpan={6}>
+                    No products yet. Use Add product to create your first item.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

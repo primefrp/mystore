@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
+import { NoActiveStore } from "@/components/admin/no-active-store";
 import { formatCurrency, titleCase } from "@/lib/format";
 import {
   getAdminBusinessData,
@@ -14,7 +15,7 @@ export default async function OrdersPage() {
   const business = await getAdminBusinessData();
 
   if (!business) {
-    return null;
+    return <NoActiveStore />;
   }
 
   const orders = await getOrdersForBusinessData(business.id);
@@ -72,6 +73,13 @@ export default async function OrdersPage() {
                   </td>
                 </tr>
               ))}
+              {orders.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-8 text-center text-sm text-zinc-600" colSpan={6}>
+                    No orders yet.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

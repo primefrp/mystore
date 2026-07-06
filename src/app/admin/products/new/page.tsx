@@ -41,10 +41,10 @@ function ProductForm({
     <form action={saveProductAction} className="mt-6 grid gap-4">
       <input name="businessSlug" type="hidden" value={businessSlug} />
       <Field label="Name" name="name" required />
-      <Field label="Product image URL" name="imageUrl" />
+      <Field label="Product image URL (optional)" name="imageUrl" />
       <label className="grid gap-2">
-        <span className="text-sm font-medium">Description</span>
-        <textarea className="min-h-28 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" name="description" required />
+        <span className="text-sm font-medium">Description (optional)</span>
+        <textarea className="min-h-28 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" name="description" />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Price" name="price" required type="number" />

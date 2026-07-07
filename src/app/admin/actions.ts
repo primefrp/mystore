@@ -5,13 +5,14 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/slug";
+import { uploadProductImage } from "@/lib/supabase-storage";
 
 const productSchema = z.object({
   businessSlug: z.string().min(1),
   categoryId: z.string().optional().or(z.literal("")),
   compareAtPrice: z.coerce.number().nonnegative().optional().or(z.nan()),
   description: z.string().trim().optional().or(z.literal("")),
-  imageUrl: z.string().trim().optional().or(z.literal("")),
+  existingImageUrl: z.string().trim().optional().or(z.literal("")),
   isFeatured: z.boolean(),
   name: z.string().min(2),
   price: z.coerce.number().nonnegative(),
@@ -104,72 +105,95 @@ async function savePrimaryProductImage(productId: string, productName: string, i
   });
 }
 
+function redirectToProductFormError(formData: FormData, error: unknown) {
+  const productId = formData.get("productId");
+  const message = error instanceof Error ? error.message : "Product could not be saved.";
+  const targetPath = typeof productId === "string" && productId ? `/admin/products/${productId}` : "/admin/products/new";
+
+  redirect(`${targetPath}?error=${encodeURIComponent(message)}`);
+}
+
 export async function saveProductAction(formData: FormData) {
-  const parsed = productSchema.parse({
-    businessSlug: formData.get("businessSlug"),
-    categoryId: formData.get("categoryId") ?? "",
-    compareAtPrice: formData.get("compareAtPrice") || undefined,
-    description: formData.get("description"),
-    imageUrl: formData.get("imageUrl") ?? "",
-    isFeatured: formData.get("isFeatured") === "on",
-    name: formData.get("name"),
-    price: formData.get("price"),
-    productId: formData.get("productId") ?? "",
-    status: formData.get("status"),
-    stockQuantity: formData.get("stockQuantity"),
-    unit: formData.get("unit"),
-  });
-
-  const businessId = await getBusinessIdBySlug(parsed.businessSlug);
-  const productId = parsed.productId || undefined;
-  const slug = await getUniqueProductSlug(businessId, parsed.name, productId);
-  const compareAtPrice = Number.isNaN(parsed.compareAtPrice) ? undefined : parsed.compareAtPrice;
-  const imageUrl = parsed.imageUrl?.trim();
-
-  let savedProduct: { id: string };
-  if (productId) {
-    savedProduct = await db.product.update({
-      data: {
-        categoryId: parsed.categoryId || null,
-        compareAtPrice,
-        description: parsed.description || "",
-        isFeatured: parsed.isFeatured,
-        name: parsed.name,
-        price: parsed.price,
-        slug,
-        status: parsed.status,
-        stockQuantity: parsed.stockQuantity,
-        unit: parsed.unit,
-      },
-      where: {
-        id: productId,
-      },
-      select: {
-        id: true,
-      },
+  try {
+    const imageFile = formData.get("imageFile");
+    const parsed = productSchema.parse({
+      businessSlug: formData.get("businessSlug"),
+      categoryId: formData.get("categoryId") ?? "",
+      compareAtPrice: formData.get("compareAtPrice") || undefined,
+      description: formData.get("description"),
+      existingImageUrl: formData.get("existingImageUrl") ?? "",
+      isFeatured: formData.get("isFeatured") === "on",
+      name: formData.get("name"),
+      price: formData.get("price"),
+      productId: formData.get("productId") ?? "",
+      status: formData.get("status"),
+      stockQuantity: formData.get("stockQuantity"),
+      unit: formData.get("unit"),
     });
-  } else {
-    savedProduct = await db.product.create({
-      data: {
-        businessId,
-        categoryId: parsed.categoryId || null,
-        compareAtPrice,
-        description: parsed.description || "",
-        isFeatured: parsed.isFeatured,
-        name: parsed.name,
-        price: parsed.price,
-        slug,
-        status: parsed.status,
-        stockQuantity: parsed.stockQuantity,
-        unit: parsed.unit,
-      },
-      select: {
-        id: true,
-      },
-    });
+
+    const businessId = await getBusinessIdBySlug(parsed.businessSlug);
+    const productId = parsed.productId || undefined;
+    const slug = await getUniqueProductSlug(businessId, parsed.name, productId);
+    const compareAtPrice = Number.isNaN(parsed.compareAtPrice) ? undefined : parsed.compareAtPrice;
+    const uploadedImageUrl =
+      imageFile instanceof File
+        ? await uploadProductImage({
+            businessSlug: parsed.businessSlug,
+            file: imageFile,
+            productName: parsed.name,
+          })
+        : undefined;
+    const imageUrl = uploadedImageUrl ?? parsed.existingImageUrl?.trim();
+
+    let savedProduct: { id: string };
+    if (productId) {
+      savedProduct = await db.product.update({
+        data: {
+          categoryId: parsed.categoryId || null,
+          compareAtPrice,
+          description: parsed.description || "",
+          isFeatured: parsed.isFeatured,
+          name: parsed.name,
+          price: parsed.price,
+          slug,
+          status: parsed.status,
+          stockQuantity: parsed.stockQuantity,
+          unit: parsed.unit,
+        },
+        where: {
+          id: productId,
+        },
+        select: {
+          id: true,
+        },
+      });
+    } else {
+      savedProduct = await db.product.create({
+        data: {
+          businessId,
+          categoryId: parsed.categoryId || null,
+          compareAtPrice,
+          description: parsed.description || "",
+          isFeatured: parsed.isFeatured,
+          name: parsed.name,
+          price: parsed.price,
+          slug,
+          status: parsed.status,
+          stockQuantity: parsed.stockQuantity,
+          unit: parsed.unit,
+        },
+        select: {
+          id: true,
+        },
+      });
+    }
+
+    if (imageUrl || uploadedImageUrl) {
+      await savePrimaryProductImage(savedProduct.id, parsed.name, imageUrl);
+    }
+  } catch (error) {
+    redirectToProductFormError(formData, error);
   }
-
-  await savePrimaryProductImage(savedProduct.id, parsed.name, imageUrl);
 
   redirect("/admin/products");
 }

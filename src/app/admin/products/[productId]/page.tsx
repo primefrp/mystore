@@ -15,10 +15,14 @@ type EditProductPageProps = {
   params: Promise<{
     productId: string;
   }>;
+  searchParams: Promise<{
+    error?: string;
+  }>;
 };
 
-export default async function EditProductPage({ params }: EditProductPageProps) {
+export default async function EditProductPage({ params, searchParams }: EditProductPageProps) {
   const { productId } = await params;
+  const { error } = await searchParams;
   const business = await getAdminBusinessData();
   const product = await getProductByIdData(productId);
 
@@ -40,11 +44,21 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         </Link>
         <div className="mt-4 rounded-lg border border-stone-200 bg-white p-5">
           <h1 className="text-2xl font-semibold">Edit Product</h1>
-          <form action={saveProductAction} className="mt-6 grid gap-4">
+          {error ? (
+            <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-950" role="alert">
+              {error}
+            </div>
+          ) : null}
+          <form action={saveProductAction} className="mt-6 grid gap-4" encType="multipart/form-data">
             <input name="businessSlug" type="hidden" value={business.slug} />
             <input name="productId" type="hidden" value={product.id} />
+            <input name="existingImageUrl" type="hidden" value={product.imageUrl ?? ""} />
             <Field defaultValue={product.name} label="Name" name="name" required />
-            <Field defaultValue={product.imageUrl ?? ""} label="Product image URL (optional)" name="imageUrl" />
+            <label className="grid gap-2">
+              <span className="text-sm font-medium">Product image (optional)</span>
+              <input accept="image/jpeg,image/png,image/webp,image/gif" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-emerald-900 focus:border-emerald-700" name="imageFile" type="file" />
+              {product.imageUrl ? <span className="text-sm text-zinc-600">Current image will stay unless you upload a new one.</span> : null}
+            </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium">Description (optional)</span>
               <textarea className="min-h-28 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-700" defaultValue={product.description} name="description" />
